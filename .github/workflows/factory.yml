@@ -12,7 +12,7 @@ concurrency:
 jobs:
   daily:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -23,12 +23,12 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VK_TOKEN: ${{ secrets.VK_TOKEN }}
         run: |
-          node scripts/trend-scout.mjs
-          node scripts/content-engine.mjs
-          node scripts/threads-drafts.mjs
-          node scripts/gen.mjs daily
-          node scripts/vk.mjs schedule || echo "ВК отложенные не прошли"
-          node scripts/vk.mjs stats || echo "статистика ВК не прошла"
+          timeout 240 node scripts/trend-scout.mjs || echo "::warning::trend-scout.mjs не закончился ($?)"
+          timeout 240 node scripts/content-engine.mjs || echo "::warning::content-engine.mjs не закончился ($?)"
+          timeout 240 node scripts/threads-drafts.mjs || echo "::warning::threads-drafts.mjs не закончился ($?)"
+          timeout 240 node scripts/gen.mjs daily || echo "::warning::gen.mjs daily не закончился ($?)"
+          timeout 240 node scripts/vk.mjs schedule || echo "ВК отложенные не прошли"
+          timeout 240 node scripts/vk.mjs stats || echo "статистика ВК не прошла"
       - name: Сохранить отметки
         if: always()
         run: |
