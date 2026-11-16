@@ -45,7 +45,10 @@ if (process.argv[2] === 'chats') {
   // если пусто — напиши любое сообщение в канал и перезапусти)
   try { const me = await api('me'); console.log(`бот: ${me.name || ''} @${me.username || ''}`) } catch (e) { console.log(`me: ${e.message}`) }
   // канал по публичной ссылке max.ru/<link> (MAX_CHANNEL_LINK, по умолчанию channel_avtohabr)
-  try { const c = await api(`chats/${process.env.MAX_CHANNEL_LINK || 'channel_avtohabr'}`); console.log(`chat_id=${c.chat_id} | ${c.title || ''} (по ссылке)`) } catch (e) { console.log(`по ссылке не нашёл: ${e.message}`) }
+  for (const l of ['channel_avtohabr', '@channel_avtohabr', 'https://max.ru/channel_avtohabr', 'max.ru/channel_avtohabr'].map(encodeURIComponent)) {
+    try { const c = await api(`chats/${l}`); console.log(`chat_id=${c.chat_id} | ${c.title || ''} (по ссылке ${l})`) } catch (e) { console.log(`${l}: ${e.message.slice(0, 90)}`) }
+  }
+  try { const c = await api('chats', { count: 50 }); for (const x of c.chats || []) console.log(`chat_id=${x.chat_id} | ${x.title || ''} | ${x.type} | ${x.link || ''}`); console.log(`чатов у бота: ${(c.chats || []).length}`) } catch (e) { console.log(`GET chats: ${e.message.slice(0, 90)}`) }
   try { const s = await api('subscriptions'); if (s.subscriptions?.length) console.log(`у бота вебхук (события уходят туда, а не в /updates): ${s.subscriptions.map((x) => x.url).join(', ')}`) } catch {}
   const u = await api('updates', { timeout: 0 })
   const ids = new Map()
