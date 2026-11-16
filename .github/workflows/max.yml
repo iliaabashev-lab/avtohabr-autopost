@@ -1,0 +1,40 @@
+name: max
+# 08:00 и 19:00 по Москве; ручной запуск с mode=chats показывает числовой ID канала
+on:
+  schedule: [{cron: "0 5,16 * * *"}]
+  workflow_dispatch:
+    inputs:
+      mode: {description: "post или chats", default: post}
+permissions:
+  contents: write
+  models: read
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Сертификат Минцифры для MAX
+        run: |
+          sudo curl -sSL -o /usr/local/share/ca-certificates/ru_root.crt https://gu-st.ru/content/lending/russian_trusted_root_ca_pem.crt
+          sudo curl -sSL -o /usr/local/share/ca-certificates/ru_sub.crt https://gu-st.ru/content/lending/russian_trusted_sub_ca_pem.crt
+          sudo update-ca-certificates > /dev/null
+          echo "NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-certificates.crt" >> $GITHUB_ENV
+      - run: node viral-factory/scripts/max-post.mjs ${{ github.event.inputs.mode || 'post' }}
+        env:
+          MAX_BOT_TOKEN: ${{ secrets.MAX_BOT_TOKEN }}
+          MAX_CHAT_ID: ${{ secrets.MAX_CHAT_ID }}
+      - name: Сохранить отметки
+        if: always()
+        run: |
+          git config user.name "autopost"; git config user.email "autopost@users.noreply.github.com"
+          git add -A viral-factory marketing
+          git diff --cached --quiet || git commit -qm "$GITHUB_WORKFLOW $(date -u +%F)"
+          for i in 1 2 3 4 5; do git pull -q --rebase --autostash origin main && git push -q origin HEAD:main && exit 0; sleep $((i * 7)); done
+          exit 1

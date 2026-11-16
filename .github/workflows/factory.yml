@@ -1,0 +1,39 @@
+name: factory
+# 06:00 по Москве: тренды, тексты (GitHub Models, бесплатно), ВК отложенные и статистика
+on:
+  schedule: [{cron: "0 3 * * *"}]
+  workflow_dispatch:
+permissions:
+  contents: write
+  models: read
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+jobs:
+  daily:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - working-directory: viral-factory
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VK_TOKEN: ${{ secrets.VK_TOKEN }}
+        run: |
+          node scripts/trend-scout.mjs
+          node scripts/content-engine.mjs
+          node scripts/threads-drafts.mjs
+          node scripts/gen.mjs daily
+          node scripts/vk.mjs schedule || echo "ВК отложенные не прошли"
+          node scripts/vk.mjs stats || echo "статистика ВК не прошла"
+      - name: Сохранить отметки
+        if: always()
+        run: |
+          git config user.name "autopost"; git config user.email "autopost@users.noreply.github.com"
+          git add -A viral-factory marketing
+          git diff --cached --quiet || git commit -qm "$GITHUB_WORKFLOW $(date -u +%F)"
+          for i in 1 2 3 4 5; do git pull -q --rebase --autostash origin main && git push -q origin HEAD:main && exit 0; sleep $((i * 7)); done
+          exit 1
