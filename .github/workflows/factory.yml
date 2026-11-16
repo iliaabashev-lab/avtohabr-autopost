@@ -3,6 +3,8 @@ name: factory
 on:
   schedule: [{cron: "0 3 * * *"}]
   workflow_dispatch:
+    inputs:
+      check: {description: "только проверить нейросеть (ничего не публикует)", type: boolean, default: false}
 permissions:
   contents: write
   models: read
@@ -18,7 +20,17 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - working-directory: viral-factory
+      - name: Проверка нейросети
+        if: inputs.check
+        working-directory: viral-factory
+        env:
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
+          LLM_MODEL: ${{ secrets.LLM_MODEL }}
+        run: |
+          node --input-type=module -e "const {llm}=await import('./scripts/lib.mjs'); console.log(await llm('Ты механик автосервиса.', 'Одной фразой: чем опасен скрип тормозов?'))"
+      - if: ${{ !inputs.check }}
+        working-directory: viral-factory
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VK_TOKEN: ${{ secrets.VK_TOKEN }}
@@ -33,7 +45,7 @@ jobs:
           timeout 240 node scripts/vk.mjs schedule || echo "ВК отложенные не прошли"
           timeout 240 node scripts/vk.mjs stats || echo "статистика ВК не прошла"
       - name: Сохранить отметки
-        if: always()
+        if: ${{ always() && !inputs.check }}
         run: |
           git config user.name "autopost"; git config user.email "autopost@users.noreply.github.com"
           git add -A viral-factory marketing
