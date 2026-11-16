@@ -16,9 +16,11 @@ export async function llm(system, user, { json = false, temperature = 0.9 } = {}
   if (process.env.LLM_API_KEY) {
     const base = process.env.LLM_BASE_URL || 'https://api.openai.com/v1'
     // выбранная владельцем модель; если она недоступна на бесплатном тарифе — проверенная gemini-3.8-flash
-    const models = [process.env.LLM_MODEL || 'gpt-4.1-mini', ...(base.includes('googleapis') ? ['gemini-3.8-flash'] : [])]
+    const models = [process.env.LLM_MODEL || 'gpt-4.1-mini', ...(base.includes('googleapis') ? ['gemini-3.8-flash', 'gemini-3.8-flash-lite'] : [])]
     let err
-    for (const model of [...new Set(models)]) {
+    // перегрузка (503/429) у бесплатного тарифа обычно проходит за минуту: до 4 попыток с паузой
+    for (const model of [...new Set(models)]) for (let a = 0; a < 4; a++) {
+      if (a) await new Promise((ok) => setTimeout(ok, 20_000 * a))
       const r = await fetch(`${base}/chat/completions`, {
         signal: AbortSignal.timeout(60_000),
         method: 'POST',
@@ -26,7 +28,7 @@ export async function llm(system, user, { json = false, temperature = 0.9 } = {}
         body: JSON.stringify({ model, temperature, messages: [{ role: 'system', content: system }, { role: 'user', content: user }], ...(json ? { response_format: { type: 'json_object' } } : {}) }),
       })
       const data = await r.json().catch(() => ({}))
-      if (!r.ok) { err = new Error(`LLM ${model} ${r.status}: ${JSON.stringify(data).slice(0, 200)}`); console.log(err.message); continue }
+      if (!r.ok) { err = new Error(`LLM ${model} ${r.status}: ${JSON.stringify(data).slice(0, 200)}`); console.log(err.message); if (r.status === 503 || r.status === 429) continue; break }
       const text = data.choices[0].message.content
       return json ? JSON.parse(text.replace(/^```(json)?\s*|\s*```$/g, '')) : text
     }
