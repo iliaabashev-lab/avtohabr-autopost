@@ -21,12 +21,13 @@ export async function llm(system, user, { json = false, temperature = 0.9 } = {}
     // перегрузка (503/429) у бесплатного тарифа обычно проходит за минуту: до 4 попыток с паузой
     for (const model of [...new Set(models)]) for (let a = 0; a < 4; a++) {
       if (a) await new Promise((ok) => setTimeout(ok, 20_000 * a))
-      const r = await fetch(`${base}/chat/completions`, {
-        signal: AbortSignal.timeout(60_000),
+      let r
+      try { r = await fetch(`${base}/chat/completions`, {
+        signal: AbortSignal.timeout(90_000),
         method: 'POST',
         headers: { Authorization: `Bearer ${process.env.LLM_API_KEY}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ model, temperature, messages: [{ role: 'system', content: system }, { role: 'user', content: user }], ...(json ? { response_format: { type: 'json_object' } } : {}) }),
-      })
+      }) } catch (e) { err = new Error(`LLM ${model}: ${e.name}`); console.log(err.message); continue }
       const data = await r.json().catch(() => ({}))
       if (!r.ok) { err = new Error(`LLM ${model} ${r.status}: ${JSON.stringify(data).slice(0, 200)}`); console.log(err.message); if (r.status === 503 || r.status === 429) continue; break }
       const text = data.choices[0].message.content
