@@ -11,19 +11,23 @@ export const dna = () => readJson(path.join(ROOT, 'knowledge/project-dna.json'))
 
 const MODEL = process.env.FACTORY_MODEL || 'openai/gpt-4.1-mini'
 
+const LLM = { down: false, t0: Date.now() }
 export async function llm(system, user, { json = false, temperature = 0.9 } = {}) {
   // любой OpenAI-совместимый провайдер по ключу из секретов (LLM_API_KEY, LLM_BASE_URL, LLM_MODEL)
   if (process.env.LLM_API_KEY) {
+    // нейросеть лежит — не ждём её в каждом вызове: после первого провала сразу запасной режим (банк постов)
+    if (LLM.down) throw new Error('LLM недоступна')
     const base = process.env.LLM_BASE_URL || 'https://api.openai.com/v1'
     // выбранная владельцем модель; если она недоступна на бесплатном тарифе — проверенная gemini-3.8-flash
     const models = [process.env.LLM_MODEL || 'gpt-4.1-mini', ...(base.includes('googleapis') ? ['gemini-3.8-flash', 'gemini-3.8-flash-lite'] : [])]
     let err
     // перегрузка (503/429) у бесплатного тарифа обычно проходит за минуту: до 4 попыток с паузой
     for (const model of [...new Set(models)]) for (let a = 0; a < 4; a++) {
+      if (Date.now() - LLM.t0 > 150_000) break
       if (a) await new Promise((ok) => setTimeout(ok, 20_000 * a))
       let r
       try { r = await fetch(`${base}/chat/completions`, {
-        signal: AbortSignal.timeout(90_000),
+        signal: AbortSignal.timeout(45_000),
         method: 'POST',
         headers: { Authorization: `Bearer ${process.env.LLM_API_KEY}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ model, temperature, messages: [{ role: 'system', content: system }, { role: 'user', content: user }], ...(json ? { response_format: { type: 'json_object' } } : {}) }),
@@ -33,6 +37,7 @@ export async function llm(system, user, { json = false, temperature = 0.9 } = {}
       const text = data.choices[0].message.content
       return json ? JSON.parse(text.replace(/^```(json)?\s*|\s*```$/g, '')) : text
     }
+    LLM.down = true
     throw err
   }
   const token = process.env.GITHUB_TOKEN
