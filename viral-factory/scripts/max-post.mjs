@@ -42,7 +42,11 @@ async function uploadImage(imgPath) {
 if (process.argv[2] === 'chats') {
   // GET /chats выпилен из API: chat_id достаём из очереди событий /updates (бот должен быть добавлен в канал;
   // если пусто — напиши любое сообщение в канал и перезапусти)
-  const u = await api('updates')
+  try { const me = await api('me'); console.log(`бот: ${me.name || ''} @${me.username || ''}`) } catch (e) { console.log(`me: ${e.message}`) }
+  // канал по публичной ссылке max.ru/<link> (MAX_CHANNEL_LINK, по умолчанию channel_avtohabr)
+  try { const c = await api(`chats/${process.env.MAX_CHANNEL_LINK || 'channel_avtohabr'}`); console.log(`chat_id=${c.chat_id} | ${c.title || ''} (по ссылке)`) } catch (e) { console.log(`по ссылке не нашёл: ${e.message}`) }
+  try { const s = await api('subscriptions'); if (s.subscriptions?.length) console.log(`у бота вебхук (события уходят туда, а не в /updates): ${s.subscriptions.map((x) => x.url).join(', ')}`) } catch {}
+  const u = await api('updates', { timeout: 0 })
   const ids = new Map()
   for (const upd of u.updates || []) {
     const m = upd.message || upd.message_created || upd
