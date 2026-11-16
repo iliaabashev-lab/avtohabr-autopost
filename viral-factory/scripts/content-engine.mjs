@@ -29,7 +29,7 @@ function fromBank() {
   const good = fresh.filter((p) => p.score >= 8)
   // чередуем: два для водителей, один для владельцев (реклама не чаще каждого третьего)
   const d = good.filter((p) => p.audience === 'drivers'), o = good.filter((p) => p.audience === 'owners')
-  const pick = []; while (pick.length < 5 && (d.length || o.length)) { if (d.length) pick.push(d.shift()); if (pick.length % 3 === 2 && o.length) pick.push(o.shift()) }
+  const pick = []; while (pick.length < 5 && (d.length || o.length)) { if (d.length) pick.push(d.shift()); if ((pick.length % 3 === 2 || !d.length) && o.length && pick.length < 5) pick.push(o.shift()) }
   // банк кончился — новые посты из генератора по шаблонам (без повторов старых)
   if (pick.length < 5) pick.push(...vkPosts(5 - pick.length, used))
   return { mode: 'bank', vk: pick.slice(0, 5), threads: pick.slice(0, 5), short: null, bank_left: good.length - pick.length }
