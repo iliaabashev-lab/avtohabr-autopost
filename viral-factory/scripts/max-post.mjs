@@ -7,7 +7,8 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { ROOT, readJson, writeJson, today } from './lib.mjs'
 
-const TOKEN = process.env.MAX_BOT_TOKEN, CHAT = process.env.MAX_CHAT_ID
+const TOKEN = process.env.MAX_BOT_TOKEN
+let CHAT = process.env.MAX_CHAT_ID
 if (!TOKEN) { console.log('MAX_BOT_TOKEN не задан — MAX пропускаю'); process.exit(0) }
 const API = 'https://platform-api2.max.ru'
 const logPath = path.join(ROOT, 'knowledge/max-posted.json')
@@ -57,6 +58,11 @@ if (process.argv[2] === 'chats') {
   if (!ids.size) { console.log(`событий с chat_id нет (всего событий: ${(u.updates || []).length}) — напиши любое сообщение в канал и перезапусти`); process.exit(0) }
   for (const [id, c] of ids) console.log(`chat_id=${id} | ${c.title || ''}`)
   process.exit(0)
+}
+// без MAX_CHAT_ID берём ID канала по публичной ссылке (бот должен быть админом канала)
+if (process.argv[2] === 'post' && !CHAT) {
+  try { CHAT = String((await api(`chats/${process.env.MAX_CHANNEL_LINK || 'channel_avtohabr'}`)).chat_id) } catch (e) { console.error(`ID канала не найден по ссылке: ${e.message}`); process.exit(1) }
+  console.log(`канал: ${CHAT}`)
 }
 if (process.argv[2] === 'post') {
   const date = today()
