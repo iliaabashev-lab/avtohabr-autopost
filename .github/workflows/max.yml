@@ -29,7 +29,7 @@ jobs:
       - run: node viral-factory/scripts/max-post.mjs ${{ github.event.inputs.mode || 'post' }}
         env:
           MAX_BOT_TOKEN: ${{ secrets.MAX_BOT_TOKEN }}
-          MAX_CHAT_ID: ${{ secrets.MAX_CHAT_ID }}
+          MAX_CHAT_ID: ${{ secrets.MAX_CHAT_ID || '-80863315363844' }}
       - name: Сохранить отметки
         if: always()
         run: |
