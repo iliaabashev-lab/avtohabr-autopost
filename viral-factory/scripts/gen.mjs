@@ -4,7 +4,9 @@
 // node gen.mjs daily → out/DATE/flow-prompts.md + stories/NNN/story.json, vc.md (пн), drive2.md (каждый 3-й день)
 import fs from 'node:fs'
 import path from 'node:path'
-import { ROOT, readJson, writeJson, today } from './lib.mjs'
+import { ROOT, readJson, writeJson, today, bannedHits } from './lib.mjs'
+// признаки ИИ-текста и штампы (список в knowledge/project-dna.json); обычное тире внутри фразы допустимо
+const aiTells = (t) => bannedHits(t).filter((w) => w !== '—')
 
 const P = readJson(path.join(ROOT, 'knowledge/gen-parts.json'))
 const date = today()
@@ -29,6 +31,7 @@ export function vkPosts(n, usedStarts) {
     const p = pick(P.problems, day * 7 + k * 5), s = pick(P.settings, day * 3 + k), t = pick(VK, day + k)
     const text = t(p, s)
     const id = text.slice(0, 60)
+    if (aiTells(text).length) continue
     if (usedStarts.has(id) || out.some((o) => o.text.slice(0, 60) === id)) continue
     out.push({ audience: VK.indexOf(t) === 2 || VK.indexOf(t) === 4 ? 'owners' : 'drivers', text, score: 8, id: 'gen' })
   }
@@ -39,85 +42,65 @@ export function vkPosts(n, usedStarts) {
 // Два типа постов по очереди: serious (совет + чек-лист) / funny (юмор). К картинке подбирается папка по тону.
 // usedStarts — начала текстов ВК за сегодня (исключаем дубли). shift — сдвиг семян между платформами (TG=0, MAX=100).
 const NL = String.fromCharCode(10)
+const low = (t) => t.charAt(0).toLowerCase() + t.slice(1)
+const up = (t) => t.charAt(0).toUpperCase() + t.slice(1)
+const checks = (p, n = 3) => p.check.slice(0, n).join(', ')
 const TG_SERIOUS = [
   (p, s) => [
     p.emoji + ' ' + p.title,
     '',
-    'Знакомая ситуация: ' + s.ru.toLowerCase() + ', а тут ' + p.short + '. Первое желание многих водителей — отложить визит в сервис «на потом» и надеяться, что само пройдёт 😅',
+    up(s.ru) + ', и тут ' + p.short + '. Обычно такое откладывают до ТО.',
     '',
-    'Но физику не обманешь: ' + p.tip,
+    p.tip,
     '',
-    'Что стоит проверить в первую очередь:',
-    ...p.check.map((c) => '✔️ ' + c.charAt(0).toUpperCase() + c.slice(1)),
-    '',
-    'А вы обычно сразу едете в сервис при первых симптомах или ждёте до планового ТО? Пишите в комментариях 👇',
+    'Что посмотреть: ' + checks(p) + '.',
   ].join(NL),
 
   (p, s) => [
-    p.emoji + ' Совет автоэксперта: что делать, если ' + p.short,
+    p.emoji + ' Если ' + p.short,
     '',
     p.hook,
     '',
-    'Поясняем на пальцах: ' + (p.tip.charAt(0).toLowerCase() + p.tip.slice(1)) + ' Своевременный осмотр занимает от силы 15-20 минут, зато спасает от дорогостоящего ремонта в самый неподходящий момент.',
+    p.tip,
     '',
-    'Памятка водителю перед поездкой:',
-    ...p.check.map((c) => '✔️ ' + c.charAt(0).toUpperCase() + c.slice(1)),
-    '',
-    'Сохраняйте пост себе, чтобы не потерять! А с какой поломкой вы сталкивались чаще всего? Пишите 👇',
+    'Начните с простого: ' + checks(p, 2) + '.',
   ].join(NL),
 
   (p, s) => [
-    p.emoji + ' Ошибка, которая стоит дорого: игнорировать, когда ' + p.short,
+    p.emoji + ' ' + p.title,
     '',
-    'Многие думают: «Ну едет же, значит пока терпит». Но правда в том, что ' + (p.tip.charAt(0).toLowerCase() + p.tip.slice(1)),
+    '«Едет же, значит терпит». Не всегда: ' + low(p.tip),
     '',
-    'Особенно неприятно, когда симптомы проявляются в дороге: ' + s.ru.toLowerCase() + '. Чем дольше тянуть — тем длиннее и дороже итоговый чек в сервисе.',
-    '',
-    'Базовый чек-лист контроля:',
-    ...p.check.map((c) => '✔️ ' + c.charAt(0).toUpperCase() + c.slice(1)),
-    '',
-    'Делитесь в комментариях: доводилось попадать на крупный ремонт из-за мелкой затянутой детали? 👇',
+    'Чем дольше так ездить, тем больше работы потом. Проверьте ' + checks(p) + '.',
   ].join(NL),
 ]
 
 const TG_FUNNY = [
   (p, s) => [
-    '😅 ' + p.joke,
+    p.joke,
     '',
-    'Классика жанра: ' + s.ru.toLowerCase() + ', и вдруг ' + p.short + '.',
+    up(s.ru) + ', и вдруг ' + p.short + '. ' + p.narr1 + ' ' + p.narr2,
     '',
-    p.narr1 + ' ' + p.narr2,
-    '',
-    'Стадия отрицания длится примерно до первой приличной ямы или светофора. А ведь если без шуток: ' + (p.tip.charAt(0).toLowerCase() + p.tip.slice(1)),
-    '',
-    'Признавайтесь в комментариях: кто тоже хоть раз надеялся, что «само рассосётся»? 🙈',
+    'Если серьёзно: ' + low(p.tip),
   ].join(NL),
 
   (p, s) => [
-    p.emoji + ' Жизненный тест для автолюбителей',
+    up(s.ru) + ', у вас ' + p.short + '. Что делаете?',
     '',
-    'Картина маслом: ' + s.ru.toLowerCase() + ', а у вас ' + p.short + '. Ваши действия?',
+    '1. Делаю музыку громче',
+    '2. Открываю капот, смотрю внутрь, закрываю',
+    '3. Звоню другу: «Слушай, а если оно так делает, это нормально?»',
+    '4. Записываюсь на диагностику',
     '',
-    '1️⃣ Делаю музыку громче и медитирую 🎶',
-    '2️⃣ Открываю капот, многозначительно смотрю внутрь и закрываю обратно 🧐',
-    '3️⃣ Звоню другу с фразой: «Слушай, а если оно так делает, это нормально?» 📞',
-    '4️⃣ Записываюсь на нормальную диагностику без лишних нервов 🚗',
-    '',
-    p.joke + ' 😅',
-    '',
-    'Голосуйте цифрой в комментариях, посмотрим кого больше! 👇',
+    p.joke,
   ].join(NL),
 
   (p, s) => [
-    '🙈 ' + p.hook,
+    p.hook,
     '',
-    p.joke + ' 😅',
+    p.joke,
     '',
-    'Самое интересное, что это почти всегда происходит в самый нужный момент: ' + s.ru.toLowerCase() + '. Закон подлости в чистом виде!',
-    '',
-    'Хотя на самом деле ' + p.short + ' лечится в сервисе буквально за один визит: ' + (p.tip.charAt(0).toLowerCase() + p.tip.slice(1)),
-    '',
-    'А какие самые забавные или нелепые поломки случались с вами на дороге? Пишите в комменты 👇',
+    'Почему-то это всегда случается, когда ' + low(s.ru) + '. А ' + p.short + ' обычно решается за один визит: ' + low(p.tip),
   ].join(NL),
 ]
 
@@ -128,7 +111,7 @@ export function tgPosts(n, usedStarts = new Set(), shift = 0) {
   for (let k = 0; out.length < n && k < 400; k++) {
     const p = pick(P.problems, day * 9 + shift * 31 + k * 7 + 2), s = pick(P.settings, day * 4 + shift * 17 + k * 3 + 1)
     const tone = TONE_PATTERN[out.length % TONE_PATTERN.length]
-    const template = tone === 'serious' ? pick(TG_SERIOUS, day + k) : pick(TG_FUNNY, day + k)
+    const template = tone === 'serious' ? pick(TG_SERIOUS, day + k + (shift ? 1 : 0)) : pick(TG_FUNNY, day + k + (shift ? 2 : 0))
     const body = template(p, s)
     const isMax = shift !== 0
     const footer = isMax
@@ -137,6 +120,7 @@ export function tgPosts(n, usedStarts = new Set(), shift = 0) {
     const text = [body, '', footer].join(NL)
     const shortText = [p.joke + ' 😅', '', footer].join(NL)
     const id = text.slice(0, 60)
+    if (aiTells(body).length) continue
     if (usedStarts.has(id) || usedStarts.has(text.slice(0, 60).replace(new RegExp('\\n+$', 'g'), '')) || out.some((o) => o.text.slice(0, 60) === id)) continue
     out.push({ text, shortText, tone, score: 8, id: 'tg', tag: p.tag || p.short, topic: p.short, title: p.title })
   }
