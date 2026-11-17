@@ -1,6 +1,6 @@
 {
-  "count": 15,
-  "updated_at": "2026-11-16T21:08:02.306Z",
+  "count": 16,
+  "updated_at": "2026-11-17T15:34:22.352Z",
   "posted": [
     {
       "post_id": "tg_20261104_20261104_175016_38fa44",
@@ -225,6 +225,21 @@
         "utc": "2026-11-16T21:08:02.305Z",
         "msk": "2026-11-17 00:08:02 MSK (UTC+3)",
         "logString": "[UTC: 2026-11-16T21:08:02.305Z | MSK: 2026-11-17 00:08:02 MSK (UTC+3)]"
+      }
+    },
+    {
+      "post_id": "tg_20261117_20261117_183420_0260ef",
+      "telegram_message_id": 44,
+      "content_hash": "47da789f3437df7d",
+      "type": "photo",
+      "text_preview": "🧀 Запах в салоне, будто там сыр\n\n«Едет же, значит терпит». Не всегда: чаще всег",
+      "topic": "запах в салоне",
+      "image_path": "/home/runner/work/avtohabr-autopost/avtohabr-autopost/viral-factory/images/serious/poster_interior_dashboard.jpg",
+      "published_at": "2026-11-17T15:34:22.351Z",
+      "timing": {
+        "utc": "2026-11-17T15:34:22.351Z",
+        "msk": "2026-11-17 18:34:22 MSK (UTC+3)",
+        "logString": "[UTC: 2026-11-17T15:34:22.351Z | MSK: 2026-11-17 18:34:22 MSK (UTC+3)]"
       }
     }
   ]
