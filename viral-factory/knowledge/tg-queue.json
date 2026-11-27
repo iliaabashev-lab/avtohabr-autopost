@@ -1,27 +1,5 @@
 [
   {
-    "post_id": "tg_20261126_20261126_192920_e4dfe3",
-    "content_type": "telegram",
-    "content_hash": "a48b94ac0c9b86d0",
-    "text": "🔊 Тормоза скрипят, а я делаю музыку громче\n\nНочь, пустая трасса, и тут скрипят тормоза. Обычно такое откладывают до ТО.\n\nСкрип часто значит, что колодки почти стёрлись. Если затянуть, придётся менять ещё и диски.\n\nЧто посмотреть: толщина колодок, состояние дисков, уровень тормозной жидкости.\n\n—\nОнлайн-запись: https://app.avtohabr.ru\nМы в MAX: https://max.ru/channel_avtohabr • ВК: https://vk.ru/avtohabr",
-    "tone": "serious",
-    "tag": "тормоза",
-    "topic": "скрипят тормоза",
-    "image_id": null,
-    "image_path": null,
-    "no_image": false,
-    "allow_text_fallback": true,
-    "scheduled_at": "2026-11-26T10:00:00.000Z",
-    "timezone": "Europe/Moscow",
-    "status": "pending",
-    "created_at": "2026-11-26T16:29:20.109Z",
-    "attempts": 0,
-    "max_attempts": 3,
-    "last_error": null,
-    "telegram_message_id": null,
-    "published_at": null
-  },
-  {
     "post_id": "tg_20261126_20261126_192920_d82099",
     "content_type": "telegram",
     "content_hash": "10493e1f99088255",
